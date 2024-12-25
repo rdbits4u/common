@@ -1,6 +1,6 @@
 
-#ifndef LIBRDPC_CONSTANTS_H
-#define LIBRDPC_CONSTANTS_H
+#if !defined(_RDP_CONSTANTS_H)
+#define _RDP_CONSTANTS_H
 
 #define MCS_CONNECT_INITIAL                 0x7F65
 #define MCS_CONNECT_RESPONSE                0x7F66
@@ -319,4 +319,4 @@ enum TS_SHARECONTROLHEADER_PDU_TYPE
     SCH_PDUTYPE_SERVER_REDIR_PKT  = 0xA
 };
 
-#endif /* #ifndef LIBRDPC_CONSTANTS_H */
+#endif

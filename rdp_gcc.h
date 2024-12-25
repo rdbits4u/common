@@ -1,6 +1,6 @@
 
-#if !defined(_LIBRDPC_GCC_H)
-#define _LIBRDPC_GCC_H
+#if !defined(_RDP_GCC_H)
+#define _RDP_GCC_H
 
 #include <stdint.h>
 
