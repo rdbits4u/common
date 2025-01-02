@@ -1,4 +1,3 @@
-
 const std = @import("std");
 
 //const g_check_check = false;
@@ -53,10 +52,19 @@ pub const parse_t = struct
     }
 
     //*************************************************************************
-    pub fn check_rem(self: *parse_t, size: usize) bool
+    pub fn check_rem_bool(self: *parse_t, size: usize) bool
     {
         self.check_offset = self.offset + size;
         return self.offset + size <= self.data.len;
+    }
+
+    //*************************************************************************
+    pub fn check_rem(self: *parse_t, size: usize) !void
+    {
+        if (!self.check_rem_bool(size))
+        {
+            return error.NoRoom;
+        }
     }
 
     //*************************************************************************
