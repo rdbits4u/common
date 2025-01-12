@@ -107,12 +107,6 @@ struct TS_UD_CS_MCS_MSGCHANNEL
     uint32_t flags;
 };
 
-struct TS_UD_CS_MULTITRANSPORT
-{
-    struct TS_UD_HEADER header; /* CS_MULTITRANSPORT (0xC00A) */
-    uint32_t flags;
-};
-
 struct TS_MONITOR_ATTRIBUTES
 {
     uint32_t physicalWidth;
@@ -129,6 +123,12 @@ struct TS_UD_CS_MONITOR_EX
     uint32_t monitorAttributeSize;
     uint32_t monitorCount;
     struct TS_MONITOR_ATTRIBUTES monitorAttributesArray[16];
+};
+
+struct TS_UD_CS_MULTITRANSPORT
+{
+    struct TS_UD_HEADER header; /* CS_MULTITRANSPORT (0xC00A) */
+    uint32_t flags;
 };
 
 #define SC_CORE             0x0C01
@@ -184,8 +184,8 @@ struct client_gcc
     struct TS_UD_CS_CLUSTER cluster;
     struct TS_UD_CS_MONITOR monitor;
     struct TS_UD_CS_MCS_MSGCHANNEL msgchannel;
-    struct TS_UD_CS_MULTITRANSPORT multitransport;
     struct TS_UD_CS_MONITOR_EX monitor_ex;
+    struct TS_UD_CS_MULTITRANSPORT multitransport;
 };
 
 struct server_gcc
