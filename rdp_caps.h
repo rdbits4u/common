@@ -371,7 +371,7 @@ struct TS_CAPS_SET
     struct TS_GLYPHCACHE_CAPABILITYSET glyphcache;
     struct TS_OFFSCREEN_CAPABILITYSET offscreen;
     struct TS_BITMAPCACHE_HOSTSUPPORT_CAPABILITYSET bitmapcache_hostsupport;
-    struct TS_BITMAPCACHE_CAPABILITYSET_REV2 bitmapcache_v2;
+    struct TS_BITMAPCACHE_CAPABILITYSET_REV2 bitmapcache_rev2;
     struct TS_VIRTUALCHANNEL_CAPABILITYSET vurtualchannel;
     struct TS_DRAW_NINEGRID_CAPABILITYSET draw_ninegrid;
     struct TS_DRAW_GDIPLUS_CAPABILITYSET draw_gdiplus;

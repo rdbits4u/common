@@ -362,6 +362,7 @@ pub const parse_t = struct
         check_check(self, @src().fn_name);
     }
 
+    //*************************************************************************
     pub fn push_layer(self: *parse_t, bytes: usize, layer: u8) void
     {
         var offset = self.offset;
@@ -371,11 +372,13 @@ pub const parse_t = struct
         check_check(self, @src().fn_name);
     }
 
+    //*************************************************************************
     pub fn pop_layer(self: *parse_t, layer: u8) void
     {
         self.offset = self.layer_offsets[layer];
     }
 
+    //*************************************************************************
     pub fn layer_subtract(self: *parse_t, a: usize, b: usize) u16
     {
          return @truncate(self.layer_offsets[a] - self.layer_offsets[b]);
