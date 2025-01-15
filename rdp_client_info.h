@@ -1,4 +1,6 @@
 
+// 2.2.1.11.1.1 Info Packet (TS_INFO_PACKET)
+
 #if !defined(_RDP_CLIENT_INFO_H)
 #define _RDP_CLIENT_INFO_H
 
