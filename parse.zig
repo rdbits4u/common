@@ -88,9 +88,8 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         self.data[offset] = @truncate(val);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 8);
-        offset += 1;
+        self.data[offset + 1] = @truncate(val >> 8);
+        offset += 2;
         self.offset = offset;
         check_check(self, @src().fn_name);
     }
@@ -100,9 +99,8 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         self.data[offset] = @truncate(val >> 8);
-        offset += 1;
-        self.data[offset] = @truncate(val);
-        offset += 1;
+        self.data[offset + 1] = @truncate(val);
+        offset += 2;
         self.offset = offset;
         check_check(self, @src().fn_name);
     }
@@ -124,13 +122,10 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         self.data[offset] = @truncate(val);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 8);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 16);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 24);
-        offset += 1;
+        self.data[offset + 1] = @truncate(val >> 8);
+        self.data[offset + 2] = @truncate(val >> 16);
+        self.data[offset + 3] = @truncate(val >> 24);
+        offset += 4;
         self.offset = offset;
         check_check(self, @src().fn_name);
     }
@@ -140,13 +135,10 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         self.data[offset] = @truncate(val >> 24);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 16);
-        offset += 1;
-        self.data[offset] = @truncate(val >> 8);
-        offset += 1;
-        self.data[offset] = @truncate(val);
-        offset += 1;
+        self.data[offset + 1] = @truncate(val >> 16);
+        self.data[offset + 2] = @truncate(val >> 8);
+        self.data[offset + 3] = @truncate(val);
+        offset += 4;
         self.offset = offset;
         check_check(self, @src().fn_name);
     }
@@ -232,11 +224,9 @@ pub const parse_t = struct
     pub inline fn in_u16_le(self: *parse_t) u16
     {
         var offset = self.offset;
-        var rv: u16 = self.data[offset];
-        offset += 1;
-        const rv1: u16 = self.data[offset];
-        offset += 1;
-        rv = rv | (rv1 << 8);
+        var rv: u16 = self.data[offset + 1];
+        rv = (rv << 8) | self.data[offset];
+        offset += 2;
         self.offset = offset;
         check_check(self, @src().fn_name);
         return rv;
@@ -247,9 +237,8 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         var rv: u16 = self.data[offset];
-        offset += 1;
-        rv = (rv << 8) | self.data[offset];
-        offset += 1;
+        rv = (rv << 8) | self.data[offset + 1];
+        offset += 2;
         self.offset = offset;
         check_check(self, @src().fn_name);
         return rv;
@@ -271,15 +260,11 @@ pub const parse_t = struct
     pub inline fn in_u32_le(self: *parse_t) u32
     {
         var offset = self.offset;
-        var rv: u32 = self.data[offset];
-        offset += 1;
-        const rv1: u32 = self.data[offset];
-        offset += 1;
-        const rv2: u32 = self.data[offset];
-        offset += 1;
-        const rv3: u32 = self.data[offset];
-        offset += 1;
-        rv = rv | (rv1 << 8) | (rv2 << 16) | (rv3 << 24);
+        var rv: u32 = self.data[offset + 3];
+        rv = (rv << 8) | self.data[offset + 2];
+        rv = (rv << 8) | self.data[offset + 1];
+        rv = (rv << 8) | self.data[offset];
+        offset += 4;
         self.offset = offset;
         check_check(self, @src().fn_name);
         return rv;
@@ -290,13 +275,10 @@ pub const parse_t = struct
     {
         var offset = self.offset;
         var rv: u32 = self.data[offset];
-        offset += 1;
-        rv = (rv << 8) | self.data[offset];
-        offset += 1;
-        rv = (rv << 8) | self.data[offset];
-        offset += 1;
-        rv = (rv << 8) | self.data[offset];
-        offset += 1;
+        rv = (rv << 8) | self.data[offset + 1];
+        rv = (rv << 8) | self.data[offset + 2];
+        rv = (rv << 8) | self.data[offset + 3];
+        offset += 4;
         self.offset = offset;
         check_check(self, @src().fn_name);
         return rv;
@@ -389,11 +371,12 @@ pub const parse_t = struct
 //*****************************************************************************
 pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
 {
-    const self: *parse_t = try allocator.create(parse_t);
+    const self = try allocator.create(parse_t);
     errdefer allocator.destroy(self);
-    self.* = .{};
+    self.* = std.mem.zeroInit(parse_t, .{});
     self.allocator = allocator;
     self.data = try allocator.alloc(u8, size);
+    errdefer self.allocator.free(self.data);
     self.did_alloc = true;
     return self;
 }
@@ -402,8 +385,9 @@ pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
 pub fn create_from_slice(allocator: *const std.mem.Allocator,
         slice: []u8) !*parse_t
 {
-    const self: *parse_t = try allocator.create(parse_t);
-    self.* = .{};
+    const self = try allocator.create(parse_t);
+    errdefer allocator.destroy(self);
+    self.* = std.mem.zeroInit(parse_t, .{});
     self.allocator = allocator;
     self.data = slice;
     self.did_alloc = false;
