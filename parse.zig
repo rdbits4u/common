@@ -2,7 +2,13 @@ const std = @import("std");
 
 //const g_check_check = false;
 const g_check_check = true;
-const g_num_layers = 4;
+const g_num_offsets = 8;
+
+const ParaseError = error
+{
+    InvalidParam,
+    NoRoom,
+};
 
 pub const parse_t = struct
 {
@@ -10,8 +16,9 @@ pub const parse_t = struct
     data: []u8 = undefined,
     offset: usize = 0,
     check_offset: usize = 0,
-    layer_offsets: [g_num_layers]usize = .{0} ** g_num_layers,
+    offsets: [g_num_offsets]usize = .{0} ** g_num_offsets,
     did_alloc: bool = false,
+    layer_index: usize = 0,
 
     //*************************************************************************
     pub fn delete(self: *parse_t) void
@@ -38,7 +45,7 @@ pub const parse_t = struct
         {
             if (size > self.data.len)
             {
-                return error.InvalidParam;
+                return ParaseError.InvalidParam;
             }
         }
         self.offset = 0;
@@ -63,7 +70,7 @@ pub const parse_t = struct
     {
         if (!self.check_rem_bool(size))
         {
-            return error.NoRoom;
+            return ParaseError.NoRoom;
         }
     }
 
@@ -348,7 +355,7 @@ pub const parse_t = struct
     pub fn push_layer(self: *parse_t, bytes: usize, layer: u8) void
     {
         var offset = self.offset;
-        self.layer_offsets[layer] = offset;
+        self.offsets[layer] = offset;
         offset += bytes;
         self.offset = offset;
         check_check(self, @src().fn_name);
@@ -357,13 +364,13 @@ pub const parse_t = struct
     //*************************************************************************
     pub fn pop_layer(self: *parse_t, layer: u8) void
     {
-        self.offset = self.layer_offsets[layer];
+        self.offset = self.offsets[layer];
     }
 
     //*************************************************************************
     pub fn layer_subtract(self: *parse_t, a: usize, b: usize) u16
     {
-         return @truncate(self.layer_offsets[a] - self.layer_offsets[b]);
+         return @truncate(self.offsets[a] - self.offsets[b]);
     }
 
 };
