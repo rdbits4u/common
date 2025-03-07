@@ -502,7 +502,8 @@ struct TS_BITMAPCODECS_CAPABILITYSET
 {
     uint16_t capabilitySetType;
     uint16_t lengthCapability;
-    char supportedBitmapCodecs[512]; // ?
+    uint16_t lengthSupportedBitmapCodecs;
+    char supportedBitmapCodecs[512];
 };
 
 
