@@ -380,7 +380,7 @@ pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
 {
     const self = try allocator.create(parse_t);
     errdefer allocator.destroy(self);
-    self.* = std.mem.zeroInit(parse_t, .{});
+    self.* = .{};
     self.allocator = allocator;
     self.data = try allocator.alloc(u8, size);
     errdefer self.allocator.free(self.data);
@@ -394,7 +394,7 @@ pub fn create_from_slice(allocator: *const std.mem.Allocator,
 {
     const self = try allocator.create(parse_t);
     errdefer allocator.destroy(self);
-    self.* = std.mem.zeroInit(parse_t, .{});
+    self.* = .{};
     self.allocator = allocator;
     self.data = slice;
     self.did_alloc = false;
@@ -406,6 +406,7 @@ inline fn check_check(self: *parse_t, fn_name: []const u8) void
 {
     if (g_check_check and (self.check_offset < self.offset))
     {
-        std.debug.print("check_check: {s}\n", .{fn_name});
+        std.debug.print("check_check: {s} check_offset {} offset {}\n",
+                .{fn_name, self.check_offset, self.offset});
     }
 }
