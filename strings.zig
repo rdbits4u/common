@@ -1,4 +1,38 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
+//*********************************************************************************
+fn my_utf8Decode2(slice: []const u8) !u21
+{
+    if (slice.len < 2) return error.Unexpected;
+    var str2: [2]u8 = undefined;
+    str2[0] = slice[0];
+    str2[1] = slice[1];
+    return std.unicode.utf8Decode2(str2);
+}
+
+//*********************************************************************************
+fn my_utf8Decode3(slice: []const u8) !u21
+{
+    if (slice.len < 3) return error.Unexpected;
+    var str3: [3]u8 = undefined;
+    str3[0] = slice[0];
+    str3[1] = slice[1];
+    str3[2] = slice[2];
+    return std.unicode.utf8Decode3(str3);
+}
+
+//*********************************************************************************
+fn my_utf8Decode4(slice: []const u8) !u21
+{
+    if (slice.len < 4) return error.Unexpected;
+    var str4: [4]u8 = undefined;
+    str4[0] = slice[0];
+    str4[1] = slice[1];
+    str4[2] = slice[2];
+    str4[3] = slice[3];
+    return std.unicode.utf8Decode4(str4);
+}
 
 //*********************************************************************************
 pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !void
@@ -19,9 +53,9 @@ pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !v
         chr21 = switch (in_bytes)
         {
             1 => utf8_in[in_index],
-            2 => try std.unicode.utf8Decode2(utf8_in[in_start..in_end]),
-            3 => try std.unicode.utf8Decode3(utf8_in[in_start..in_end]),
-            4 => try std.unicode.utf8Decode4(utf8_in[in_start..in_end]),
+            2 => try my_utf8Decode2(utf8_in[in_start..in_end]),
+            3 => try my_utf8Decode3(utf8_in[in_start..in_end]),
+            4 => try my_utf8Decode4(utf8_in[in_start..in_end]),
             else => return error.Unexpected,
         };
         in_index += in_bytes;
