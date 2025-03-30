@@ -1,6 +1,4 @@
 const std = @import("std");
-const stdout = std.io.getStdOut();
-const writer = stdout.writer();
 
 pub const LogLevel = enum(u8)
 {
@@ -30,10 +28,10 @@ var g_allocator: *const std.mem.Allocator = undefined;
 var g_seconds_bias: i32 = 0;
 var g_bias_str: [8:0]u8 = .{'+', '0', '0', '0', '0', 0, 0, 0};
 var g_name: [8:0] u8 = .{'U', 'T', 'C', 0, 0, 0, 0, 0};
-
 const g_max_name_len = 6; // size of std.tz.Timetype.name_data
-
 const g_show_devel = false;
+var g_file: ?std.fs.File = null;
+var g_writer = std.io.getStdOut().writer();
 
 //*****************************************************************************
 pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
@@ -53,6 +51,23 @@ pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
         try logln(LogLevel.err, @src(),
                 "init_timezone failed err {}", .{err});
     }
+}
+
+//*****************************************************************************
+pub fn initWithFile(allocator: *const std.mem.Allocator, lv: LogLevel,
+        file_name: []const u8) !void
+{
+    if (file_exists(file_name))
+    {
+        const save_file_name = try std.fmt.allocPrint(g_allocator.*,
+                "{s}.last", .{file_name});
+        defer g_allocator.free(save_file_name);
+        try std.posix.rename(file_name, save_file_name);
+    }
+    const file = try std.fs.createFileAbsolute(file_name, .{});
+    g_writer = file.writer();
+    g_file = file;
+    try init(allocator, lv);
 }
 
 //*****************************************************************************
@@ -147,6 +162,10 @@ fn init_timezone() !void
 //*****************************************************************************
 pub fn deinit() void
 {
+    if (g_file) |afile|
+    {
+        afile.close();
+    }
 }
 
 //*****************************************************************************
@@ -176,7 +195,7 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
                 .{dt.hour, dt.minute, dt.second, dt.millisecond});
         defer g_allocator.free(time_buf);
         const log_lv_name = g_log_lv_names[lv_int];
-        try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+        try g_writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
                 .{date_buf, time_buf, g_bias_str,
                 log_lv_name, src.fn_name, msg_buf});
     }
