@@ -44,7 +44,8 @@ pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
         // ok
         try logln(LogLevel.info, @src(),
                 "logging init ok, time zone {s} {s}",
-                .{g_name, g_bias_str});
+                .{std.mem.sliceTo(&g_name, 0),
+                std.mem.sliceTo(&g_bias_str, 0)});
     }
     else |err|
     {
@@ -153,7 +154,7 @@ fn init_timezone() !void
                 }
             }
             const sign: u8 = if (g_seconds_bias < 0) '-' else '+';
-            _ = try std.fmt.bufPrint(&g_bias_str, "{c}{d:0>4.0}",
+            _ = try std.fmt.bufPrintZ(&g_bias_str, "{c}{d:0>4.0}",
                     .{sign, @abs(@divTrunc(g_seconds_bias, 36))});
         }
     }
@@ -196,7 +197,7 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
         defer g_allocator.free(time_buf);
         const log_lv_name = g_log_lv_names[lv_int];
         try g_writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                .{date_buf, time_buf, g_bias_str,
+                .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
                 log_lv_name, src.fn_name, msg_buf});
     }
 }
