@@ -25,6 +25,14 @@ struct TS_UD_HEADER
 
 #define RNS_UD_SAS_DEL      0xAA03
 
+/* Connection Types, TS_UD_CS_CORE::connectionType */
+#define CONNECTION_TYPE_MODEM               0x01
+#define CONNECTION_TYPE_BROADBAND_LOW       0x02
+#define CONNECTION_TYPE_SATELLITE           0x03
+#define CONNECTION_TYPE_BROADBAND_HIGH      0x04
+#define CONNECTION_TYPE_WAN                 0x05
+#define CONNECTION_TYPE_LAN                 0x06
+
 struct TS_UD_CS_CORE
 {
     struct TS_UD_HEADER header; /* CS_CORE (0xC001) */

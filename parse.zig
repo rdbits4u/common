@@ -75,6 +75,12 @@ pub const parse_t = struct
     }
 
     //*************************************************************************
+    pub fn get_rem(self: *parse_t) usize
+    {
+        return self.data.len - self.offset;
+    }
+
+    //*************************************************************************
     pub inline fn out_u8(self: *parse_t, val: u8) void
     {
         var offset = self.offset;
@@ -191,13 +197,10 @@ pub const parse_t = struct
     //*************************************************************************
     pub fn out_u8_slice(self: *parse_t, slice: []const u8) void
     {
-        var offset = self.offset;
-        for (slice) |byte|
-        {
-            self.data[offset] = byte;
-            offset += 1;
-        }
-        self.offset = offset;
+        const offset = self.offset;
+        const end = offset + slice.len;
+        std.mem.copyForwards(u8, self.data[offset..end], slice);
+        self.offset = end;
         check_check(self, @src().fn_name);
     }
 
