@@ -349,4 +349,12 @@
 /* CODEC_GUID_JPEG 0x430C9EED1BAF4CE6869ACB8B37B66237*/
 #define CODEC_GUID_JPEG "\xE6\x4C\xAF\x1B\xED\x9E\x0C\x43\x86\x9A\xCB\x8B\x37\xB6\x62\x37"
 
+#define INPUT_EVENT_SYNC                        0x0000
+#define INPUT_EVENT_UNUSED                      0x0002
+#define INPUT_EVENT_SCANCODE                    0x0004
+#define INPUT_EVENT_UNICODE                     0x0005
+#define INPUT_EVENT_MOUSE                       0x8001
+#define INPUT_EVENT_MOUSEX                      0x8002
+#define INPUT_EVENT_MOUSEREL                    0x8004
+
 #endif
