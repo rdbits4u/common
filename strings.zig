@@ -5,33 +5,54 @@ const builtin = @import("builtin");
 fn my_utf8Decode2(slice: []const u8) !u21
 {
     if (slice.len < 2) return error.Unexpected;
-    var str2: [2]u8 = undefined;
-    str2[0] = slice[0];
-    str2[1] = slice[1];
-    return std.unicode.utf8Decode2(str2);
+    if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor == 13))
+    {
+        return std.unicode.utf8Decode2(slice);
+    }
+    else
+    {
+        var str2: [2]u8 = undefined;
+        str2[0] = slice[0];
+        str2[1] = slice[1];
+        return std.unicode.utf8Decode2(str2);
+    }
 }
 
 //*********************************************************************************
 fn my_utf8Decode3(slice: []const u8) !u21
 {
     if (slice.len < 3) return error.Unexpected;
-    var str3: [3]u8 = undefined;
-    str3[0] = slice[0];
-    str3[1] = slice[1];
-    str3[2] = slice[2];
-    return std.unicode.utf8Decode3(str3);
+    if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor == 13))
+    {
+        return std.unicode.utf8Decode3(slice);
+    }
+    else
+    {
+        var str3: [3]u8 = undefined;
+        str3[0] = slice[0];
+        str3[1] = slice[1];
+        str3[2] = slice[2];
+        return std.unicode.utf8Decode3(str3);
+    }
 }
 
 //*********************************************************************************
 fn my_utf8Decode4(slice: []const u8) !u21
 {
     if (slice.len < 4) return error.Unexpected;
-    var str4: [4]u8 = undefined;
-    str4[0] = slice[0];
-    str4[1] = slice[1];
-    str4[2] = slice[2];
-    str4[3] = slice[3];
-    return std.unicode.utf8Decode4(str4);
+    if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor == 13))
+    {
+        return std.unicode.utf8Decode4(slice);
+    }
+    else
+    {
+        var str4: [4]u8 = undefined;
+        str4[0] = slice[0];
+        str4[1] = slice[1];
+        str4[2] = slice[2];
+        str4[3] = slice[3];
+        return std.unicode.utf8Decode4(str4);
+    }
 }
 
 //*********************************************************************************
