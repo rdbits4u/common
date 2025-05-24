@@ -357,4 +357,9 @@
 #define INPUT_EVENT_MOUSEX                      0x8002
 #define INPUT_EVENT_MOUSEREL                    0x8004
 
+#define TS_SYNC_SCROLL_LOCK                     0x00000001  // Indicates that the Scroll Lock indicator light SHOULD be on.
+#define TS_SYNC_NUM_LOCK                        0x00000002  // Indicates that the Num Lock indicator light SHOULD be on.
+#define TS_SYNC_CAPS_LOCK                       0x00000004  // Indicates that the Caps Lock indicator light SHOULD be on.
+#define TS_SYNC_KANA_LOCK                       0x00000008  // Indicates that the Kana Lock indicator light SHOULD be on.
+
 #endif
