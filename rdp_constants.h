@@ -272,16 +272,6 @@
 #define SURFACECMD_FRAMEACTION_BEGIN            0x0000  // Indicates the start of a new frame.
 #define SURFACECMD_FRAMEACTION_END              0x0001  // Indicates the end of the current frame.
 
-
-#define CHANNEL_FLAG_SUSPEND                    0x00000020  // All virtual channel traffic MUST be suspended. This flag is only valid in server-to-client virtual channel traffic. It MUST be ignored in client-to-server data.
-#define CHANNEL_FLAG_RESUME                     0x00000040  // All virtual channel traffic MUST be resumed. This flag is only valid in server-to-client virtual channel traffic. It MUST be ignored in client-to-server data.
-#define CHANNEL_FLAG_SHADOW_PERSISTENT          0x00000080  // This flag is unused and its value MUST be ignored by the client and server.
-#define CHANNEL_PACKET_COMPRESSED               0x00200000  // The virtual channel data is compressed. This flag is equivalent to MPPC bit C (for more information see [RFC2118] section 3.1).
-
-#define CHANNEL_PACKET_AT_FRONT                 0x00400000  // The decompressed packet MUST be placed at the beginning of the history buffer. This flag is equivalent to MPPC bit B (for more information see [RFC2118] section 3.1).
-#define CHANNEL_PACKET_FLUSHED                  0x00800000  // The decompressor MUST reinitialize the history buffer (by filling it with zeros) and reset the HistoryOffset to zero. After it has been reinitialized, the entire history buffer is immediately regarded as valid. This flag is equivalent to MPPC bit A (for more information see [RFC2118] section 3.1). If the CHANNEL_PACKET_COMPRESSED (0x00200000) flag is also present, then the CHANNEL_PACKET_FLUSHED flag MUST be processed first.
-#define CompressionTypeMask                     0x000F0000  // Indicates the compression package which was used to compress the data. See the discussion which follows this table for a list of compression packages.
-
 // Possible compression types are as follows.
 #define PACKET_COMPR_TYPE_8K                    0x0 // RDP 4.0 bulk compression (section 3.1.8.4.1).
 #define PACKET_COMPR_TYPE_64K                   0x1 // RDP 5.0 bulk compression (section 3.1.8.4.2).
@@ -291,12 +281,14 @@
 /*****************************************************************************
 **                  Static virtual channel constants                        **
 *****************************************************************************/
-
+#define CHANNEL_CHUCK_LENGTH                    1600
+#define CHANNEL_FLAG_FIRST                      0x00000001  // Indicates that the chunk is the first in a sequence.
+#define CHANNEL_FLAG_LAST                       0x00000002  // Indicates that the chunk is the last in a sequence.
+#define CHANNEL_FLAG_SHOW_PROTOCOL              0x00000010  // The Channel PDU Header MUST be visible to the application endpoint (section 2.2.1.3.4.1).
 #define CHANNEL_FLAG_SUSPEND                    0x00000020  // All virtual channel traffic MUST be suspended. This flag is only valid in server-to-client virtual channel traffic. It MUST be ignored in client-to-server data.
 #define CHANNEL_FLAG_RESUME                     0x00000040  // All virtual channel traffic MUST be resumed. This flag is only valid in server-to-client virtual channel traffic. It MUST be ignored in client-to-server data.
 #define CHANNEL_FLAG_SHADOW_PERSISTENT          0x00000080  // This flag is unused and its value MUST be ignored by the client and server.
 #define CHANNEL_PACKET_COMPRESSED               0x00200000  // The virtual channel data is compressed. This flag is equivalent to MPPC bit C (for more information see [RFC2118] section 3.1).
-
 #define CHANNEL_PACKET_AT_FRONT                 0x00400000  // The decompressed packet MUST be placed at the beginning of the history buffer. This flag is equivalent to MPPC bit B (for more information see [RFC2118] section 3.1).
 #define CHANNEL_PACKET_FLUSHED                  0x00800000  // The decompressor MUST reinitialize the history buffer (by filling it with zeros) and reset the HistoryOffset to zero. After it has been reinitialized, the entire history buffer is immediately regarded as valid. This flag is equivalent to MPPC bit A (for more information see [RFC2118] section 3.1). If the CHANNEL_PACKET_COMPRESSED (0x00200000) flag is also present, then the CHANNEL_PACKET_FLUSHED flag MUST be processed first.
 #define CompressionTypeMask                     0x000F0000  // Indicates the compression package which was used to compress the data. See the discussion which follows this table for a list of compression packages.
