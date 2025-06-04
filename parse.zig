@@ -12,13 +12,12 @@ const ParaseError = error
 
 pub const parse_t = struct
 {
-    allocator: *const std.mem.Allocator = undefined,
-    data: []u8 = undefined,
+    allocator: *const std.mem.Allocator,
+    data: []u8 = &.{},
     offset: usize = 0,
     check_offset: usize = 0,
     offsets: [g_num_offsets]usize = .{0} ** g_num_offsets,
     did_alloc: bool = false,
-    layer_index: usize = 0,
 
     //*************************************************************************
     pub fn delete(self: *parse_t) void
@@ -383,8 +382,7 @@ pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
 {
     const self = try allocator.create(parse_t);
     errdefer allocator.destroy(self);
-    self.* = .{};
-    self.allocator = allocator;
+    self.* = .{.allocator = allocator};
     self.data = try allocator.alloc(u8, size);
     errdefer self.allocator.free(self.data);
     self.did_alloc = true;
@@ -397,8 +395,7 @@ pub fn create_from_slice(allocator: *const std.mem.Allocator,
 {
     const self = try allocator.create(parse_t);
     errdefer allocator.destroy(self);
-    self.* = .{};
-    self.allocator = allocator;
+    self.* = .{.allocator = allocator};
     self.data = slice;
     self.did_alloc = false;
     return self;
