@@ -20,6 +20,30 @@ pub const parse_t = struct
     did_alloc: bool = false,
 
     //*************************************************************************
+    pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
+    {
+        const self = try allocator.create(parse_t);
+        errdefer allocator.destroy(self);
+        self.* = .{.allocator = allocator};
+        self.data = try allocator.alloc(u8, size);
+        errdefer self.allocator.free(self.data);
+        self.did_alloc = true;
+        return self;
+    }
+
+    //*************************************************************************
+    pub fn create_from_slice(allocator: *const std.mem.Allocator,
+            slice: []u8) !*parse_t
+    {
+        const self = try allocator.create(parse_t);
+        errdefer allocator.destroy(self);
+        self.* = .{.allocator = allocator};
+        self.data = slice;
+        self.did_alloc = false;
+        return self;
+    }
+
+    //*************************************************************************
     pub fn delete(self: *parse_t) void
     {
         if (self.did_alloc)
@@ -86,7 +110,7 @@ pub const parse_t = struct
         self.data[offset] = val;
         offset += 1;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -103,7 +127,7 @@ pub const parse_t = struct
         self.data[offset + 1] = @truncate(val >> 8);
         offset += 2;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -114,7 +138,7 @@ pub const parse_t = struct
         self.data[offset + 1] = @truncate(val);
         offset += 2;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -139,7 +163,7 @@ pub const parse_t = struct
         self.data[offset + 3] = @truncate(val >> 24);
         offset += 4;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -152,7 +176,7 @@ pub const parse_t = struct
         self.data[offset + 3] = @truncate(val);
         offset += 4;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -200,7 +224,7 @@ pub const parse_t = struct
         const end = offset + slice.len;
         std.mem.copyForwards(u8, self.data[offset..end], slice);
         self.offset = end;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -215,7 +239,7 @@ pub const parse_t = struct
             index += 1;
         }
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -225,7 +249,7 @@ pub const parse_t = struct
         const rv: u8 = self.data[offset];
         offset += 1;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return rv;
     }
 
@@ -237,7 +261,7 @@ pub const parse_t = struct
         rv = (rv << 8) | self.data[offset];
         offset += 2;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return rv;
     }
 
@@ -249,7 +273,7 @@ pub const parse_t = struct
         rv = (rv << 8) | self.data[offset + 1];
         offset += 2;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return rv;
     }
 
@@ -275,7 +299,7 @@ pub const parse_t = struct
         rv = (rv << 8) | self.data[offset];
         offset += 4;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return rv;
     }
 
@@ -289,7 +313,7 @@ pub const parse_t = struct
         rv = (rv << 8) | self.data[offset + 3];
         offset += 4;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return rv;
     }
 
@@ -340,7 +364,7 @@ pub const parse_t = struct
         const slice: []u8 = self.data[offset..end];
         offset += bytes;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
         return slice;
     }
 
@@ -350,7 +374,7 @@ pub const parse_t = struct
         var offset = self.offset;
         offset += bytes;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -360,7 +384,7 @@ pub const parse_t = struct
         self.offsets[layer] = offset;
         offset += bytes;
         self.offset = offset;
-        check_check(self, @src().fn_name);
+        self.check_check(@src().fn_name);
     }
 
     //*************************************************************************
@@ -375,38 +399,14 @@ pub const parse_t = struct
          return @truncate(self.offsets[a] - self.offsets[b]);
     }
 
-};
-
-//*****************************************************************************
-pub fn create(allocator: *const std.mem.Allocator, size: usize) !*parse_t
-{
-    const self = try allocator.create(parse_t);
-    errdefer allocator.destroy(self);
-    self.* = .{.allocator = allocator};
-    self.data = try allocator.alloc(u8, size);
-    errdefer self.allocator.free(self.data);
-    self.did_alloc = true;
-    return self;
-}
-
-//*****************************************************************************
-pub fn create_from_slice(allocator: *const std.mem.Allocator,
-        slice: []u8) !*parse_t
-{
-    const self = try allocator.create(parse_t);
-    errdefer allocator.destroy(self);
-    self.* = .{.allocator = allocator};
-    self.data = slice;
-    self.did_alloc = false;
-    return self;
-}
-
-//*****************************************************************************
-inline fn check_check(self: *parse_t, fn_name: []const u8) void
-{
-    if (g_check_check and (self.check_offset < self.offset))
+    //*************************************************************************
+    inline fn check_check(self: *parse_t, fn_name: []const u8) void
     {
-        std.debug.print("check_check: {s} check_offset {} offset {}\n",
-                .{fn_name, self.check_offset, self.offset});
+        if (g_check_check and (self.check_offset < self.offset))
+        {
+            std.debug.print("check_check: {s} check_offset {} offset {}\n",
+                    .{fn_name, self.check_offset, self.offset});
+        }
     }
-}
+
+};
