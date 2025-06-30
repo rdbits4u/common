@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-//*********************************************************************************
+//*****************************************************************************
 fn my_utf8Decode2(slice: []const u8) !u21
 {
     if (slice.len < 2) return error.Unexpected;
@@ -18,7 +18,7 @@ fn my_utf8Decode2(slice: []const u8) !u21
     }
 }
 
-//*********************************************************************************
+//*****************************************************************************
 fn my_utf8Decode3(slice: []const u8) !u21
 {
     if (slice.len < 3) return error.Unexpected;
@@ -36,7 +36,7 @@ fn my_utf8Decode3(slice: []const u8) !u21
     }
 }
 
-//*********************************************************************************
+//*****************************************************************************
 fn my_utf8Decode4(slice: []const u8) !u21
 {
     if (slice.len < 4) return error.Unexpected;
@@ -55,7 +55,7 @@ fn my_utf8Decode4(slice: []const u8) !u21
     }
 }
 
-//*********************************************************************************
+//*****************************************************************************
 pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !void
 {
     var in_index: usize = 0;
@@ -90,7 +90,7 @@ pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !v
     }
 }
 
-//*********************************************************************************
+//*****************************************************************************
 pub fn utf16_to_u32_array(utf16_in: []const u16, utf32_out: *std.ArrayList(u32)) !void
 {
     var in_index: usize = 0;
@@ -123,7 +123,85 @@ pub fn utf16_to_u32_array(utf16_in: []const u16, utf32_out: *std.ArrayList(u32))
     }
 }
 
-//*********************************************************************************
+//*****************************************************************************
+pub fn utf16_as_u8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !void
+{
+    var in_index: usize = 0;
+    const in_count = utf8_in.len / 2;
+    while (in_index < in_count)
+    {
+        var chr21: u21 = undefined;
+        var utf16_in: [2]u16 = undefined;
+        utf16_in[0] = utf8_in[in_index * 2 + 1];
+        utf16_in[0] = (utf16_in[0] << 8) | utf8_in[in_index * 2 + 0];
+        const in_shorts =
+                try std.unicode.utf16CodeUnitSequenceLength(utf16_in[0]);
+        if (in_index + in_shorts > in_count)
+        {
+            return error.Unexpected;
+        }
+        if (in_shorts == 1)
+        {
+            chr21 = utf16_in[0];
+        }
+        else if (in_shorts == 2)
+        {
+            utf16_in[1] = utf8_in[in_index * 2 + 3];
+            utf16_in[1] = (utf16_in[1] << 8) | utf8_in[in_index * 2 + 2];
+            chr21 = try std.unicode.utf16DecodeSurrogatePair(utf16_in[0..2]);
+        }
+        else
+        {
+            return error.Unexpected;
+        }
+        in_index += in_shorts;
+        try utf32_out.append(chr21);
+    }
+    // remove any trailing zeros
+    while ((utf32_out.items.len > 0) and
+            (utf32_out.items[utf32_out.items.len - 1] == 0))
+    {
+        utf32_out.items.len -= 1;
+    }
+}
+
+//*****************************************************************************
+// counts the nil at the end
+pub fn u32_array_to_utf8Z(u32_array: *std.ArrayList(u32),
+        utf8: []u8, bytes_written_out: *usize) !void
+{
+    if (utf8.len < 1)
+    {
+        return error.Unexpected;
+    }
+    var lbytes_written_out: usize = 0;
+    var chr21: u21 = undefined;
+    var out_index: usize = 0;
+    const out_max = utf8.len;
+    var in_index: usize = 0;
+    const in_count = u32_array.items.len;
+    while (in_index < in_count) : (in_index += 1)
+    {
+        chr21 = @truncate(u32_array.items[in_index]);
+        const bytes_out = try std.unicode.utf8CodepointSequenceLength(chr21);
+        if (out_index + bytes_out > out_max)
+        {
+            return error.NoRoom;
+        }
+        const bytes_out1 = try std.unicode.utf8Encode(chr21, utf8[out_index..]);
+        if (bytes_out != bytes_out1)
+        {
+            return error.Unexpected;
+        }
+        out_index += bytes_out;
+        lbytes_written_out += bytes_out;
+    }
+    utf8[out_index] = 0;
+    bytes_written_out.* = lbytes_written_out + 1;
+}
+
+//*****************************************************************************
+// counts the nil at the end
 pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
         utf16_as_u8: []u8, bytes_written_out: *usize) !void
 {
@@ -131,11 +209,10 @@ pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
     {
         return error.Unexpected;
     }
-    @memset(utf16_as_u8, 0);
-    bytes_written_out.* = 0;
+    var lbytes_written_out: usize = 0;
     var chr21: u21 = undefined;
     var out_index: usize = 0;
-    const out_max = (utf16_as_u8.len >> 1) - 1;
+    const out_max = utf16_as_u8.len >> 1;
     var in_index: usize = 0;
     const in_count = u32_array.items.len;
     while (in_index < in_count) : (in_index += 1)
@@ -150,7 +227,7 @@ pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
             utf16_as_u8[out_index * 2] = @truncate(chr21);
             utf16_as_u8[out_index * 2 + 1] = @truncate(chr21 >> 8);
             out_index += 1;
-            bytes_written_out.* += 2;
+            lbytes_written_out += 2;
         }
         else
         {
@@ -165,27 +242,28 @@ pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
             utf16_as_u8[out_index * 2 + 2] = @truncate(high);
             utf16_as_u8[out_index * 2 + 3] = @truncate(high >> 8);
             out_index += 2;
-            bytes_written_out.* += 4;
+            lbytes_written_out += 4;
         }
     }
+    if (out_index + 1 > out_max)
+    {
+        return error.NoRoom;
+    }
+    utf16_as_u8[out_index * 2] = 0;
+    utf16_as_u8[out_index * 2 + 1] = 0;
+    bytes_written_out.* = lbytes_written_out + 2;
 }
 
-//*********************************************************************************
+//*****************************************************************************
+// writes out string including nil at end but does not include the nil in cbSize
 pub fn utf8_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
         utf8: []const u8, utf16_as_u8: []u8, cbSize: *u16) !void
 {
     try u32_array.resize(0);
     try utf8_to_u32_array(utf8, u32_array);
     var bytes_written_out: usize = 0;
-    if (u32_array_to_utf16Z_as_u8(u32_array, utf16_as_u8,
-            &bytes_written_out)) |_| { } else |err|
-    {
-        if (err != error.NoRoom)
-        {
-            return err;
-        }
-    }
-    cbSize.* = @truncate(bytes_written_out);
+    try u32_array_to_utf16Z_as_u8(u32_array, utf16_as_u8, &bytes_written_out);
+    cbSize.* = @truncate(bytes_written_out - 2);
 }
 
 //*****************************************************************************
