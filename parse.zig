@@ -396,7 +396,13 @@ pub const parse_t = struct
     //*************************************************************************
     pub fn layer_subtract(self: *parse_t, a: usize, b: usize) u16
     {
-         return @truncate(self.offsets[a] - self.offsets[b]);
+        return @truncate(self.offsets[a] - self.offsets[b]);
+    }
+
+    //*************************************************************************
+    pub fn layer_subtract_u32(self: *parse_t, a: usize, b: usize) u32
+    {
+        return @truncate(self.offsets[a] - self.offsets[b]);
     }
 
     //*************************************************************************
