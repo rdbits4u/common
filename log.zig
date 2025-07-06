@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub const LogLevel = enum(u8)
 {
@@ -27,11 +28,10 @@ var g_lv: LogLevel = LogLevel.debug;
 var g_allocator: *const std.mem.Allocator = undefined;
 var g_seconds_bias: i32 = 0;
 var g_bias_str: [8:0]u8 = .{'+', '0', '0', '0', '0', 0, 0, 0};
-var g_name: [8:0] u8 = .{'U', 'T', 'C', 0, 0, 0, 0, 0};
+var g_name: [32:0] u8 = .{'U', 'T', 'C'} ++ .{0} ** (32 - 3);
 const g_max_name_len = 6; // size of std.tz.Timetype.name_data
 const g_show_devel = false;
 var g_file: ?std.fs.File = null;
-var g_writer = std.io.getStdOut().writer();
 
 //*****************************************************************************
 pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
@@ -43,7 +43,7 @@ pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
     {
         // ok
         try logln(LogLevel.info, @src(),
-                "logging init ok, time zone {s} {s}",
+                "logging init ok, time zone [{s}] [{s}]",
                 .{std.mem.sliceTo(&g_name, 0),
                 std.mem.sliceTo(&g_bias_str, 0)});
     }
@@ -66,9 +66,9 @@ pub fn initWithFile(allocator: *const std.mem.Allocator, lv: LogLevel,
         try std.posix.rename(file_name, save_file_name);
     }
     const file = try std.fs.createFileAbsolute(file_name, .{});
-    g_writer = file.writer();
     g_file = file;
     try init(allocator, lv);
+    try logln(LogLevel.info, @src(), "logging file name [{s}]", .{file_name});
 }
 
 //*****************************************************************************
@@ -80,9 +80,82 @@ fn file_exists(file_path: []const u8) bool
     return true;
 }
 
+const TIME_ZONE_ID_UNKNOWN: u32 = 0;
+const TIME_ZONE_ID_STANDARD: u32 = 1;
+const TIME_ZONE_ID_DAYLIGHT: u32 = 2;
+const TIME_ZONE_ID_INVALID: u32 = 4294967295;
+
+const SYSTEMTIME = extern struct
+{
+    wYear: u16,
+    wMonth: u16,
+    wDayOfWeek: u16,
+    wDay: u16,
+    wHour: u16,
+    wMinute: u16,
+    wSecond: u16,
+    wMilliseconds: u16,
+};
+const TIME_ZONE_INFORMATION = extern struct
+{
+    Bias: i32,
+    StandardName: [32]u16,
+    StandardDate: SYSTEMTIME,
+    StandardBias: i32,
+    DaylightName: [32]u16,
+    DaylightDate: SYSTEMTIME,
+    DaylightBias: i32,
+};
+
+extern "kernel32"
+fn GetTimeZoneInformation(lpTimeZoneInformation: ?*TIME_ZONE_INFORMATION)
+        callconv(std.os.windows.WINAPI) u32;
+
+const CP_UTF8: u32 = 65001;
+
+const WC_COMPOSITECHECK: u32 = 0x00000200;
+
+extern "kernel32"
+fn WideCharToMultiByte(CodePage: u32, dwFlags: u32,
+    lpWideCharStr: [*:0]const u16, cchWideChar: i32,
+    lpMultiByteStr: ?[*]u8, cbMultiByte: i32, lpDefaultChar: ?[*]const u8,
+    lpUsedDefaultChar: ?*i32,) callconv(std.os.windows.WINAPI) i32;
+
 //*****************************************************************************
+fn time_zone_name(out: [:0]u8, in: []const u16) !void
+{
+    const lin = in[0..in.len :0];
+    _ = WideCharToMultiByte(CP_UTF8, WC_COMPOSITECHECK,
+            lin.ptr, @intCast(lin.len),
+            out.ptr, @intCast(out.len), null, null);
+}
+
+//*****************************************************************************
+// setup g_seconds_bias, g_bias_str, g_name
 fn init_timezone() !void
 {
+    if (builtin.target.os.tag == .windows)
+    {
+        var tzi: TIME_ZONE_INFORMATION = undefined;
+        const rv = GetTimeZoneInformation(&tzi);
+        if (rv != TIME_ZONE_ID_INVALID)
+        {
+            g_seconds_bias = tzi.Bias * -60;
+            if (rv == TIME_ZONE_ID_STANDARD)
+            {
+                try time_zone_name(&g_name, &tzi.StandardName);
+            }
+            else if (rv == TIME_ZONE_ID_DAYLIGHT)
+            {
+                g_seconds_bias += 60 * 60;
+                try time_zone_name(&g_name, &tzi.DaylightName);
+            }
+            const sign: u8 = if (g_seconds_bias < 0) '-' else '+';
+            _ = try std.fmt.bufPrintZ(&g_bias_str, "{c}{d:0>4.0}",
+                    .{sign, @abs(@divTrunc(g_seconds_bias, 36))});
+        }
+        return;
+    }
     const zoneinfo = "/usr/share/zoneinfo/";
     var tz_file_path: ?[]u8 = null;
     const tz_env = std.posix.getenv("TZ");
@@ -196,9 +269,20 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
                 .{dt.hour, dt.minute, dt.second, dt.millisecond});
         defer g_allocator.free(time_buf);
         const log_lv_name = g_log_lv_names[lv_int];
-        try g_writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
-                log_lv_name, src.fn_name, msg_buf});
+        if (g_file) |afile|
+        {
+            var writer = afile.writer();
+            try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                    .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                    log_lv_name, src.fn_name, msg_buf});
+        }
+        else
+        {
+            var writer = std.io.getStdOut().writer();
+            try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                    .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                    log_lv_name, src.fn_name, msg_buf});
+        }
     }
 }
 
