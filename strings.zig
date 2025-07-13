@@ -196,6 +196,10 @@ pub fn u32_array_to_utf8Z(u32_array: *std.ArrayList(u32),
         out_index += bytes_out;
         lbytes_written_out += bytes_out;
     }
+    if (out_index + 1 > out_max)
+    {
+        return error.NoRoom;
+    }
     utf8[out_index] = 0;
     bytes_written_out.* = lbytes_written_out + 1;
 }
@@ -280,4 +284,26 @@ pub fn copyZ(dst: []u8, src: []const u8) void
         dst[index] = src[index];
     }
     dst[index] = 0;
+}
+
+//*****************************************************************************
+// copy src slice to dst slice but make sure dst has a nil at end
+pub fn utf8_to_utf8Z(u32_array: *std.ArrayList(u32), utf8: []u8,
+        utf8_in: []const u16) !void
+{
+    try u32_array.resize(0);
+    try utf8_to_u32_array(utf8_in, u32_array);
+    var bytes_written_out: usize = 0;
+    try u32_array_to_utf8Z(u32_array, utf8, &bytes_written_out);
+}
+
+//*****************************************************************************
+// copy src slice to dst slice but make sure dst has a nil at end
+pub fn utf16_to_utf8Z(u32_array: *std.ArrayList(u32), utf8: []u8,
+        utf16_in: []const u16) !void
+{
+    try u32_array.resize(0);
+    try utf16_to_u32_array(utf16_in, u32_array);
+    var bytes_written_out: usize = 0;
+    try u32_array_to_utf8Z(u32_array, utf8, &bytes_written_out);
 }
