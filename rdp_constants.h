@@ -73,9 +73,6 @@
 #define INFO_PASSWORD_IS_SC_PIN                 0x00040000
 #define INFO_HIDEF_RAIL_SUPPORTED               0x02000000
 
-#define AF_INET                                 0x0002
-#define AF_INET6                                0x0017
-
 /* Extended Info Packet performance flags */
 #define IP_PERF_DISABLE_WALLPAPER               0x00000001
 #define IP_PERF_DISABLE_FULLWINDOWDRAG          0x00000002
