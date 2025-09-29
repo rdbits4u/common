@@ -351,4 +351,10 @@
 #define TS_SYNC_CAPS_LOCK                       0x00000004  // Indicates that the Caps Lock indicator light SHOULD be on.
 #define TS_SYNC_KANA_LOCK                       0x00000008  // Indicates that the Kana Lock indicator light SHOULD be on.
 
+#define TS_PTRMSGTYPE_SYSTEM                    0x0001      // Indicates a System Pointer Update (section 2.2.9.1.1.4.3).
+#define TS_PTRMSGTYPE_POSITION                  0x0003      // Indicates a Pointer Position Update (section 2.2.9.1.1.4.2).
+#define TS_PTRMSGTYPE_COLOR                     0x0006      // Indicates a Color Pointer Update (section 2.2.9.1.1.4.4).
+#define TS_PTRMSGTYPE_CACHED                    0x0007      // Indicates a Cached Pointer Update (section 2.2.9.1.1.4.6).
+#define TS_PTRMSGTYPE_POINTER                   0x0008      // Indicates a New Pointer Update (section 2.2.9.1.1.4.5).
+
 #endif
