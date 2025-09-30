@@ -357,4 +357,14 @@
 #define TS_PTRMSGTYPE_CACHED                    0x0007      // Indicates a Cached Pointer Update (section 2.2.9.1.1.4.6).
 #define TS_PTRMSGTYPE_POINTER                   0x0008      // Indicates a New Pointer Update (section 2.2.9.1.1.4.5).
 
+#define FASTPATH_INPUT_SYNC_SCROLL_LOCK         0x01        // Indicates that the Scroll Lock indicator light SHOULD be on.
+#define FASTPATH_INPUT_SYNC_NUM_LOCK            0x02        // Indicates that the Num Lock indicator light SHOULD be on.
+#define FASTPATH_INPUT_SYNC_CAPS_LOCK           0x04        // Indicates that the Caps Lock indicator light SHOULD be on.
+#define FASTPATH_INPUT_SYNC_KANA_LOCK           0x08        // Indicates that the Kana Lock indicator light SHOULD be on.
+
+#define KBDFLAGS_EXTENDED                       0x0100
+#define KBDFLAGS_EXTENDED1                      0x0200
+#define KBDFLAGS_DOWN                           0x4000
+#define KBDFLAGS_RELEASE                        0x8000
+
 #endif
