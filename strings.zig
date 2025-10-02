@@ -56,7 +56,8 @@ fn my_utf8Decode4(slice: []const u8) !u21
 }
 
 //*****************************************************************************
-pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !void
+pub fn utf8_to_u32_array(allocator: *const std.mem.Allocator,
+        utf8_in: []const u8, utf32_out: *std.ArrayListUnmanaged(u32)) !void
 {
     var in_index: usize = 0;
     const in_count = utf8_in.len;
@@ -80,7 +81,7 @@ pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !v
             else => return error.Unexpected,
         };
         in_index += in_bytes;
-        try utf32_out.append(chr21);
+        try utf32_out.append(allocator.*, chr21);
     }
     // remove any trailing zeros
     while ((utf32_out.items.len > 0) and
@@ -91,7 +92,8 @@ pub fn utf8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !v
 }
 
 //*****************************************************************************
-pub fn utf16_to_u32_array(utf16_in: []const u16, utf32_out: *std.ArrayList(u32)) !void
+pub fn utf16_to_u32_array(allocator: *const std.mem.Allocator,
+        utf16_in: []const u16, utf32_out: *std.ArrayListUnmanaged(u32)) !void
 {
     var in_index: usize = 0;
     const in_count = utf16_in.len;
@@ -113,7 +115,7 @@ pub fn utf16_to_u32_array(utf16_in: []const u16, utf32_out: *std.ArrayList(u32))
             else => return error.Unexpected,
         };
         in_index += in_shorts;
-        try utf32_out.append(chr21);
+        try utf32_out.append(allocator.*, chr21);
     }
     // remove any trailing zeros
     while ((utf32_out.items.len > 0) and
@@ -124,7 +126,8 @@ pub fn utf16_to_u32_array(utf16_in: []const u16, utf32_out: *std.ArrayList(u32))
 }
 
 //*****************************************************************************
-pub fn utf16_as_u8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u32)) !void
+pub fn utf16_as_u8_to_u32_array(allocator: *const std.mem.Allocator,
+        utf8_in: []const u8, utf32_out: *std.ArrayListUnmanaged(u32)) !void
 {
     var in_index: usize = 0;
     const in_count = utf8_in.len / 2;
@@ -155,7 +158,7 @@ pub fn utf16_as_u8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u
             return error.Unexpected;
         }
         in_index += in_shorts;
-        try utf32_out.append(chr21);
+        try utf32_out.append(allocator.*, chr21);
     }
     // remove any trailing zeros
     while ((utf32_out.items.len > 0) and
@@ -167,7 +170,7 @@ pub fn utf16_as_u8_to_u32_array(utf8_in: []const u8, utf32_out: *std.ArrayList(u
 
 //*****************************************************************************
 // counts the nil at the end
-pub fn u32_array_to_utf8Z(u32_array: *std.ArrayList(u32),
+pub fn u32_array_to_utf8Z(u32_array: *std.ArrayListUnmanaged(u32),
         utf8: []u8, bytes_written_out: *usize) !void
 {
     if (utf8.len < 1)
@@ -206,7 +209,7 @@ pub fn u32_array_to_utf8Z(u32_array: *std.ArrayList(u32),
 
 //*****************************************************************************
 // counts the nil at the end
-pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
+pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayListUnmanaged(u32),
         utf16_as_u8: []u8, bytes_written_out: *usize) !void
 {
     if ((utf16_as_u8.len >> 1) < 1)
@@ -260,11 +263,12 @@ pub fn u32_array_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
 
 //*****************************************************************************
 // writes out string including nil at end but does not include the nil in cbSize
-pub fn utf8_to_utf16Z_as_u8(u32_array: *std.ArrayList(u32),
+pub fn utf8_to_utf16Z_as_u8(allocator: *const std.mem.Allocator,
+        u32_array: *std.ArrayListUnmanaged(u32),
         utf8: []const u8, utf16_as_u8: []u8, cbSize: *u16) !void
 {
-    try u32_array.resize(0);
-    try utf8_to_u32_array(utf8, u32_array);
+    try u32_array.resize(allocator.*, 0);
+    try utf8_to_u32_array(allocator, utf8, u32_array);
     var bytes_written_out: usize = 0;
     try u32_array_to_utf16Z_as_u8(u32_array, utf16_as_u8, &bytes_written_out);
     cbSize.* = @truncate(bytes_written_out - 2);
@@ -288,7 +292,7 @@ pub fn copyZ(dst: []u8, src: []const u8) void
 
 //*****************************************************************************
 // copy src slice to dst slice but make sure dst has a nil at end
-pub fn utf8_to_utf8Z(u32_array: *std.ArrayList(u32), utf8: []u8,
+pub fn utf8_to_utf8Z(u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
         utf8_in: []const u16) !void
 {
     try u32_array.resize(0);
@@ -299,7 +303,7 @@ pub fn utf8_to_utf8Z(u32_array: *std.ArrayList(u32), utf8: []u8,
 
 //*****************************************************************************
 // copy src slice to dst slice but make sure dst has a nil at end
-pub fn utf16_to_utf8Z(u32_array: *std.ArrayList(u32), utf8: []u8,
+pub fn utf16_to_utf8Z(u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
         utf16_in: []const u16) !void
 {
     try u32_array.resize(0);

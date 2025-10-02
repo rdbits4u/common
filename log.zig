@@ -178,7 +178,7 @@ fn init_timezone() !void
                 .{.mode = .read_only});
         defer file.close();
         var buf_reader = std.io.bufferedReader(file.reader());
-        var in_stream = buf_reader.reader();
+        const in_stream = buf_reader.reader();
         const buf = try g_allocator.alloc(u8, 1024);
         defer g_allocator.free(buf);
         if (try in_stream.readUntilDelimiterOrEof(buf, '\n')) |line|
@@ -191,7 +191,6 @@ fn init_timezone() !void
     {
         tz_file_path = try std.fmt.allocPrint(g_allocator.*,
                 "/etc/localtime", .{});
-
     }
     if (tz_file_path) |atz_file_path|
     {
@@ -199,8 +198,9 @@ fn init_timezone() !void
         const file = try std.fs.openFileAbsolute(atz_file_path,
                 .{.mode = .read_only});
         defer file.close();
-        var in_stream = std.io.bufferedReader(file.reader());
-        var tz = try std.Tz.parse(g_allocator.*, in_stream.reader());
+        var buf_reader = std.io.bufferedReader(file.reader());
+        const in_stream = buf_reader.reader();
+        var tz = try std.Tz.parse(g_allocator.*, in_stream);
         defer tz.deinit();
         // time in seconds
         const now = std.time.timestamp();
