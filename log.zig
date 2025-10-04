@@ -130,6 +130,43 @@ fn time_zone_name(out: [:0]u8, in: []const u16) !void
             out.ptr, @intCast(out.len), null, null);
 }
 
+// helper object for Tz.parse
+pub const myreader = struct
+{
+    reader: *std.Io.Reader,
+    pub fn readStruct(self: *myreader, comptime T: type) !T
+    {
+        return self.reader.takeStruct(T, .little);
+    }
+    pub inline fn skipBytes(self: *myreader, num_bytes: u64,
+            comptime options: std.Io.AnyReader.SkipBytesOptions) !void
+    {
+        _ = options;
+        return self.reader.toss(num_bytes);
+    }
+    pub inline fn readInt(self: *myreader, comptime T: type,
+            endian: std.builtin.Endian) !T
+    {
+        return self.reader.takeInt(T, endian);
+    }
+    pub inline fn readByte(self: *myreader) !u8
+    {
+        return self.reader.takeByte();
+    }
+    pub inline fn readNoEof(self: *myreader, buf: []u8) !void
+    {
+        const val = try self.reader.take(buf.len);
+        std.mem.copyForwards(u8, buf, val);
+
+    }
+    pub inline fn readUntilDelimiter(self: *myreader, buf: []u8,
+            delimiter: u8) ![]u8
+    {
+        _ = buf;
+        return self.reader.takeDelimiterExclusive(delimiter);
+    }
+};
+
 //*****************************************************************************
 // setup g_seconds_bias, g_bias_str, g_name
 fn init_timezone() !void
@@ -151,11 +188,13 @@ fn init_timezone() !void
                 try time_zone_name(&g_name, &tzi.DaylightName);
             }
             const sign: u8 = if (g_seconds_bias < 0) '-' else '+';
-            _ = try std.fmt.bufPrintZ(&g_bias_str, "{c}{d:0>4.0}",
+            _ = try std.fmt.bufPrint(&g_bias_str, "{c}{d:0>4.0}\x00",
                     .{sign, @abs(@divTrunc(g_seconds_bias, 36))});
         }
         return;
     }
+    const buf = try g_allocator.alloc(u8, 4096);
+    defer g_allocator.free(buf);
     const zoneinfo = "/usr/share/zoneinfo/";
     var tz_file_path: ?[]u8 = null;
     const tz_env = std.posix.getenv("TZ");
@@ -177,12 +216,22 @@ fn init_timezone() !void
         const file = try std.fs.openFileAbsolute("/etc/timezone",
                 .{.mode = .read_only});
         defer file.close();
-        var buf_reader = std.io.bufferedReader(file.reader());
-        const in_stream = buf_reader.reader();
-        const buf = try g_allocator.alloc(u8, 1024);
-        defer g_allocator.free(buf);
-        if (try in_stream.readUntilDelimiterOrEof(buf, '\n')) |line|
+        if ((builtin.zig_version.major == 0) and
+                (builtin.zig_version.minor < 15))
         {
+            var buf_reader = std.io.bufferedReader(file.reader());
+            const reader = buf_reader.reader();
+            if (try reader.readUntilDelimiterOrEof(buf, '\n')) |line|
+            {
+                tz_file_path = try std.fmt.allocPrint(g_allocator.*, "{s}{s}",
+                        .{zoneinfo, line});
+            }
+        }
+        else
+        {
+            var file_reader = file.reader(buf);
+            const reader = &file_reader.interface;
+            const line = try reader.takeDelimiterExclusive('\n');
             tz_file_path = try std.fmt.allocPrint(g_allocator.*, "{s}{s}",
                     .{zoneinfo, line});
         }
@@ -198,25 +247,45 @@ fn init_timezone() !void
         const file = try std.fs.openFileAbsolute(atz_file_path,
                 .{.mode = .read_only});
         defer file.close();
-        var buf_reader = std.io.bufferedReader(file.reader());
-        const in_stream = buf_reader.reader();
-        var tz = try std.Tz.parse(g_allocator.*, in_stream);
-        defer tz.deinit();
         // time in seconds
         const now = std.time.timestamp();
-        var last: ?std.tz.Transition = null;
-        for (tz.transitions) |trans|
+        var last: ?std.tz.Timetype = null;
+        if ((builtin.zig_version.major == 0) and
+                (builtin.zig_version.minor < 15))
         {
-            if (trans.ts > now)
+            var buf_reader = std.io.bufferedReader(file.reader());
+            const reader = buf_reader.reader();
+            var tz = try std.Tz.parse(g_allocator.*, reader);
+            defer tz.deinit();
+            for (tz.transitions) |trans|
             {
-                break;
+                if (trans.ts > now)
+                {
+                    break;
+                }
+                last = trans.timetype.*;
             }
-            last = trans;
+        }
+        else
+        {
+            var file_reader = file.reader(buf);
+            const reader = &file_reader.interface;
+            var mreader: myreader = .{.reader = reader};
+            var tz = try std.Tz.parse(g_allocator.*, &mreader);
+            defer tz.deinit();
+            for (tz.transitions) |trans|
+            {
+                if (trans.ts > now)
+                {
+                    break;
+                }
+                last = trans.timetype.*;
+            }
         }
         if (last) |alast|
         {
-            g_seconds_bias = alast.timetype.offset;
-            const name = alast.timetype.name();
+            g_seconds_bias = alast.offset;
+            const name = alast.name();
             var index: usize = 0;
             while (index < g_max_name_len) : (index += 1)
             {
@@ -227,7 +296,7 @@ fn init_timezone() !void
                 }
             }
             const sign: u8 = if (g_seconds_bias < 0) '-' else '+';
-            _ = try std.fmt.bufPrintZ(&g_bias_str, "{c}{d:0>4.0}",
+            _ = try std.fmt.bufPrint(&g_bias_str, "{c}{d:0>4.0}\x00",
                     .{sign, @abs(@divTrunc(g_seconds_bias, 36))});
         }
     }
@@ -271,17 +340,47 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
         const log_lv_name = g_log_lv_names[lv_int];
         if (g_file) |afile|
         {
-            var writer = afile.writer();
-            try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                    .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
-                    log_lv_name, src.fn_name, msg_buf});
+            if ((builtin.zig_version.major == 0) and
+                    (builtin.zig_version.minor < 15))
+            {
+                var writer = afile.writer();
+                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                        log_lv_name, src.fn_name, msg_buf});
+            }
+            else
+            {
+                var file_buffer: [32]u8 = undefined;
+                var file_writer = afile.writer(&file_buffer);
+                const writer = &file_writer.interface;
+                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                        log_lv_name, src.fn_name, msg_buf});
+                try writer.flush();
+            }
         }
         else
         {
-            var writer = std.io.getStdOut().writer();
-            try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                    .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
-                    log_lv_name, src.fn_name, msg_buf});
+            if ((builtin.zig_version.major == 0) and
+                    (builtin.zig_version.minor < 15))
+            {
+                const stdout = std.io.getStdOut();
+                const writer = stdout.writer();
+                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                        log_lv_name, src.fn_name, msg_buf});
+            }
+            else
+            {
+                var stdout_buffer: [32]u8 = undefined;
+                const stdout = std.fs.File.stdout();
+                var stdout_writer = stdout.writer(&stdout_buffer);
+                const writer = &stdout_writer.interface;
+                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                        log_lv_name, src.fn_name, msg_buf});
+                try writer.flush();
+            }
         }
     }
 }
