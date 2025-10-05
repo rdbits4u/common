@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const expect = std.testing.expect;
 
 //*****************************************************************************
 fn my_utf8Decode2(slice: []const u8) !u21
@@ -291,23 +292,71 @@ pub fn copyZ(dst: []u8, src: []const u8) void
 }
 
 //*****************************************************************************
-// copy src slice to dst slice but make sure dst has a nil at end
-pub fn utf8_to_utf8Z(u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
-        utf8_in: []const u16) !void
+test "copyZ"
 {
-    try u32_array.resize(0);
-    try utf8_to_u32_array(utf8_in, u32_array);
+    var dest: [10]u8 = .{0xAE} ** 10;
+    copyZ(dest[0..1], "hello");
+    try expect(std.mem.eql(u8, dest[0..1], "\x00"));
+    copyZ(dest[0..2], "hello");
+    try expect(std.mem.eql(u8, dest[0..2], "h\x00"));
+    copyZ(dest[0..3], "hello");
+    try expect(std.mem.eql(u8, dest[0..3], "he\x00"));
+    copyZ(dest[0..4], "hello");
+    try expect(std.mem.eql(u8, dest[0..4], "hel\x00"));
+    copyZ(dest[0..5], "hello");
+    try expect(std.mem.eql(u8, dest[0..5], "hell\x00"));
+    copyZ(dest[0..6], "hello");
+    try expect(std.mem.eql(u8, dest[0..6], "hello\x00"));
+    copyZ(dest[0..7], "hello");
+    try expect(std.mem.eql(u8, dest[0..7], "hello\x00\xAE"));
+}
+
+//*****************************************************************************
+// copy src slice to dst slice but make sure dst has a nil at end
+pub fn utf8_to_utf8Z(allocator: *const std.mem.Allocator,
+        u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
+        utf8_in: []const u8) !void
+{
+    try u32_array.resize(allocator.*, 0);
+    try utf8_to_u32_array(allocator, utf8_in, u32_array);
     var bytes_written_out: usize = 0;
     try u32_array_to_utf8Z(u32_array, utf8, &bytes_written_out);
 }
 
 //*****************************************************************************
+test "utf8_to_utf8Z"
+{
+    var u32_array = try std.ArrayListUnmanaged(u32).initCapacity(
+            std.testing.allocator, 32);
+    defer u32_array.deinit(std.testing.allocator);
+    var dest: [10]u8 = .{0xAE} ** 10;
+    const src = [_]u8{'j', 'a', 'y'};
+    try utf8_to_utf8Z(&std.testing.allocator, &u32_array,
+            dest[0..], src[0..]);
+    try expect(std.mem.eql(u8, dest[0..4], "jay\x00"));
+}
+
+//*****************************************************************************
 // copy src slice to dst slice but make sure dst has a nil at end
-pub fn utf16_to_utf8Z(u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
+pub fn utf16_to_utf8Z(allocator: *const std.mem.Allocator,
+        u32_array: *std.ArrayListUnmanaged(u32), utf8: []u8,
         utf16_in: []const u16) !void
 {
-    try u32_array.resize(0);
-    try utf16_to_u32_array(utf16_in, u32_array);
+    try u32_array.resize(allocator.*, 0);
+    try utf16_to_u32_array(allocator, utf16_in, u32_array);
     var bytes_written_out: usize = 0;
     try u32_array_to_utf8Z(u32_array, utf8, &bytes_written_out);
+}
+
+//*****************************************************************************
+test "utf16_to_utf8Z"
+{
+    var u32_array = try std.ArrayListUnmanaged(u32).initCapacity(
+            std.testing.allocator, 32);
+    defer u32_array.deinit(std.testing.allocator);
+    var dest: [10]u8 = .{0xAE} ** 10;
+    const src = [_]u16{'j', 'a', 'y'};
+    try utf16_to_utf8Z(&std.testing.allocator, &u32_array,
+            dest[0..], src[0..]);
+    try expect(std.mem.eql(u8, dest[0..4], "jay\x00"));
 }
