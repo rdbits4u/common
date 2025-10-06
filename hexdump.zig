@@ -1,6 +1,7 @@
 //! A module containing functions for printing a HexDump of given bytes.
 //! This module supports printing in color if the underlying TTY supports it.
 const std = @import("std");
+const builtin = @import("builtin");
 
 /// The number of bytes dumped in one line.
 pub const BYTES_IN_LINE: usize = 16;
@@ -36,8 +37,16 @@ const TEXT_CONTENTS_SECTION_LENGTH = BYTES_IN_LINE + 2 * sectionSeperator.len;
 
 const TOTAL_LENGTH = ADDRESS_SECTION_LENGTH + HEX_CONTENTS_SECTION_LENGTH + TEXT_CONTENTS_SECTION_LENGTH;
 
-const stdout = std.io.getStdOut();
-const writer = stdout.writer();
+const stdout =
+if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor < 15))
+        std.io.getStdOut() else std.fs.File.stdout();
+
+var stdout_buffer: [1024]u8 = undefined;
+var stdout_writer = stdout.writer(&stdout_buffer);
+
+var writer =
+if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor < 15))
+        stdout.writer() else &stdout_writer.interface;
 
 const tty = std.io.tty;
 const Color = tty.Color;
@@ -97,7 +106,11 @@ fn printHexDumpTrailer(contents: []const u8) !void {
     // Add padding before Text Contents Section
     if (contents.len < BYTES_IN_LINE) {
         const padding_length = (BYTES_IN_LINE - contents.len) * BYTE_PRINTING_LENGTH + (NUMBER_OF_SPACES_IN_LINE - (contents.len / NUMBER_OF_BYTES_BEFORE_SPACE));
-        try writer.writeByteNTimes(' ', padding_length);
+        if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor < 15)) {
+            try writer.writeByteNTimes(' ', padding_length);
+        } else {
+            try writer.splatByteAll(' ', padding_length);
+        }
     }
 
     _ = try writer.write(sectionSeperator);
@@ -119,7 +132,11 @@ fn printHexDumpTrailer(contents: []const u8) !void {
     // Add padding before the closing of Text Contents Section
     if (contents.len < BYTES_IN_LINE) {
         const padding_length = BYTES_IN_LINE - contents.len;
-        try writer.writeByteNTimes(' ', padding_length);
+        if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor < 15)) {
+            try writer.writeByteNTimes(' ', padding_length);
+        } else {
+            try writer.splatByteAll(' ', padding_length);
+        }
     }
     _ = try writer.write(sectionSeperator);
     _ = try writer.write("\n");
@@ -166,4 +183,10 @@ pub fn printHexDump(offset: usize, contents: []const u8) !void {
     while (index < contents.len) : (index += BYTES_IN_LINE) {
         try printHexDumpLine(offset, index, contents);
     }
+    if ((builtin.zig_version.major == 0) and (builtin.zig_version.minor < 15))
+            { } else { try writer.flush(); }
+}
+
+test "printHexDump" {
+    try printHexDump(0, "This is a test of the emergency broadcasting system");
 }
