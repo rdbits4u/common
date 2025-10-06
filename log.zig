@@ -338,6 +338,8 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
                 .{dt.hour, dt.minute, dt.second, dt.millisecond});
         defer g_allocator.free(time_buf);
         const log_lv_name = g_log_lv_names[lv_int];
+        const buf = try g_allocator.alloc(u8, 4096);
+        defer g_allocator.free(buf);
         if (g_file) |afile|
         {
             if ((builtin.zig_version.major == 0) and
@@ -350,8 +352,7 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
             }
             else
             {
-                var file_buffer: [32]u8 = undefined;
-                var file_writer = afile.writer(&file_buffer);
+                var file_writer = afile.writer(buf);
                 const writer = &file_writer.interface;
                 try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
                         .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
@@ -372,9 +373,8 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
             }
             else
             {
-                var stdout_buffer: [32]u8 = undefined;
                 const stdout = std.fs.File.stdout();
-                var stdout_writer = stdout.writer(&stdout_buffer);
+                var stdout_writer = stdout.writer(buf);
                 const writer = &stdout_writer.interface;
                 try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
                         .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
