@@ -142,7 +142,7 @@ pub const myreader = struct
             comptime options: std.Io.AnyReader.SkipBytesOptions) !void
     {
         _ = options;
-        return self.reader.toss(num_bytes);
+        return self.reader.toss(@intCast(num_bytes));
     }
     pub inline fn readInt(self: *myreader, comptime T: type,
             endian: std.builtin.Endian) !T
