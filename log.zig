@@ -31,7 +31,7 @@ var g_bias_str: [8:0]u8 = .{'+', '0', '0', '0', '0', 0, 0, 0};
 var g_name: [32:0] u8 = .{'U', 'T', 'C'} ++ .{0} ** (32 - 3);
 const g_max_name_len = 6; // size of std.tz.Timetype.name_data
 const g_show_devel = false;
-var g_file: ?std.fs.File = null;
+var g_file: i32 = -1;
 
 //*****************************************************************************
 pub fn init(allocator: *const std.mem.Allocator, lv: LogLevel) !void
@@ -65,8 +65,11 @@ pub fn initWithFile(allocator: *const std.mem.Allocator, lv: LogLevel,
         defer g_allocator.free(save_file_name);
         try std.posix.rename(file_name, save_file_name);
     }
-    const file = try std.fs.createFileAbsolute(file_name, .{});
-    g_file = file;
+    const filename = std.mem.sliceTo(file_name, 0);
+    const flags: std.posix.O =
+            .{.ACCMODE = .WRONLY, .CREAT = true, .TRUNC = true};
+    const perm: std.posix.mode_t = 0o666;
+    g_file = try std.posix.open(filename, flags, perm);
     try init(allocator, lv);
     try logln(LogLevel.info, @src(), "logging file name [{s}]", .{file_name});
 }
@@ -305,9 +308,10 @@ fn init_timezone() !void
 //*****************************************************************************
 pub fn deinit() void
 {
-    if (g_file) |afile|
+    if (g_file != -1)
     {
-        afile.close();
+        std.posix.close(g_file);
+        g_file = -1;
     }
 }
 
@@ -340,24 +344,17 @@ pub fn logln(lv: LogLevel, src: std.builtin.SourceLocation,
         const log_lv_name = g_log_lv_names[lv_int];
         const buf = try g_allocator.alloc(u8, 4096);
         defer g_allocator.free(buf);
-        if (g_file) |afile|
+        if (g_file != -1)
         {
-            if ((builtin.zig_version.major == 0) and
-                    (builtin.zig_version.minor < 15))
+            var buf_out = try std.fmt.bufPrint(buf,
+                    "[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
+                    .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
+                    log_lv_name, src.fn_name, msg_buf});
+            while (buf_out.len > 0)
             {
-                var writer = afile.writer();
-                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
-                        log_lv_name, src.fn_name, msg_buf});
-            }
-            else
-            {
-                var file_writer = afile.writer(buf);
-                const writer = &file_writer.interface;
-                try writer.print("[{s}T{s}{s}] [{s: <7.0}] {s}: {s}\n",
-                        .{date_buf, time_buf, std.mem.sliceTo(&g_bias_str, 0),
-                        log_lv_name, src.fn_name, msg_buf});
-                try writer.flush();
+                const written = try std.posix.write(g_file, buf_out);
+                buf_out.ptr += written;
+                buf_out.len -= written;
             }
         }
         else
