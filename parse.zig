@@ -218,6 +218,38 @@ pub const parse_t = struct
     }
 
     //*************************************************************************
+    pub fn out_f32_le(self: *parse_t, val: f32) void
+    {
+        const f32_array = std.mem.toBytes(val);
+        const val_u32 = std.mem.bytesAsValue(u32, &f32_array).*;
+        self.out_u32_le(val_u32);
+    }
+
+    //*************************************************************************
+    pub fn out_f32_be(self: *parse_t, val: f32) void
+    {
+        const f32_array = std.mem.toBytes(val);
+        const val_u32 = std.mem.bytesAsValue(u32, &f32_array).*;
+        self.out_u32_be(val_u32);
+    }
+
+    //*************************************************************************
+    pub fn out_f64_le(self: *parse_t, val: f64) void
+    {
+        const f64_array = std.mem.toBytes(val);
+        const val_u64 = std.mem.bytesAsValue(u64, &f64_array).*;
+        self.out_u64_le(val_u64);
+    }
+
+    //*************************************************************************
+    pub fn out_f64_be(self: *parse_t, val: f64) void
+    {
+        const f64_array = std.mem.toBytes(val);
+        const val_u64 = std.mem.bytesAsValue(u64, &f64_array).*;
+        self.out_u64_be(val_u64);
+    }
+
+    //*************************************************************************
     pub fn out_u8_slice(self: *parse_t, slice: []const u8) void
     {
         const offset = self.offset;
@@ -357,6 +389,38 @@ pub const parse_t = struct
     }
 
     //*************************************************************************
+    pub fn in_f32_le(self: *parse_t) f32
+    {
+        const val_u32 = self.in_u32_le();
+        const val_u32_array = std.mem.toBytes(val_u32);
+        return std.mem.bytesAsValue(f32, &val_u32_array).*;
+    }
+
+    //*************************************************************************
+    pub fn in_f32_be(self: *parse_t) f32
+    {
+        const val_u32 = self.in_u32_be();
+        const val_u32_array = std.mem.toBytes(val_u32);
+        return std.mem.bytesAsValue(f32, &val_u32_array).*;
+    }
+
+    //*************************************************************************
+    pub fn in_f64_le(self: *parse_t) f64
+    {
+        const val_u64 = self.in_u64_le();
+        const val_u64_array = std.mem.toBytes(val_u64);
+        return std.mem.bytesAsValue(f64, &val_u64_array).*;
+    }
+
+    //*************************************************************************
+    pub fn in_f64_be(self: *parse_t) f64
+    {
+        const val_u64 = self.in_u64_be();
+        const val_u64_array = std.mem.toBytes(val_u64);
+        return std.mem.bytesAsValue(f64, &val_u64_array).*;
+    }
+
+    //*************************************************************************
     pub fn in_u8_slice(self: *parse_t, bytes: usize) []u8
     {
         var offset = self.offset;
@@ -416,3 +480,91 @@ pub const parse_t = struct
     }
 
 };
+
+//*****************************************************************************
+test "f32out_f32in_le"
+{
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+    const s = try parse_t.create(&allocator, 1024);
+    defer s.delete();
+    const valf32: f32 = 10.789;
+    s.push_layer(0, 0);
+    try s.check_rem(4);
+    s.out_f32_le(valf32);
+    s.push_layer(0, 1);
+    try std.testing.expect(4 == s.layer_subtract(1, 0));
+    try s.reset(0);
+    try s.check_rem(4);
+    s.push_layer(0, 0);
+    const valf32a = s.in_f32_le();
+    s.push_layer(0, 1);
+    try std.testing.expect(4 == s.layer_subtract(1, 0));
+    try std.testing.expect(valf32 == valf32a);
+}
+
+//*****************************************************************************
+test "f32out_f32in_be"
+{
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+    const s = try parse_t.create(&allocator, 1024);
+    defer s.delete();
+    const valf32: f32 = 10.789;
+    s.push_layer(0, 0);
+    try s.check_rem(4);
+    s.out_f32_be(valf32);
+    s.push_layer(0, 1);
+    try std.testing.expect(4 == s.layer_subtract(1, 0));
+    try s.reset(0);
+    try s.check_rem(4);
+    s.push_layer(0, 0);
+    const valf32a = s.in_f32_be();
+    s.push_layer(0, 1);
+    try std.testing.expect(4 == s.layer_subtract(1, 0));
+    try std.testing.expect(valf32 == valf32a);
+}
+
+//*****************************************************************************
+test "f64out_f64in_le"
+{
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+    const s = try parse_t.create(&allocator, 1024);
+    defer s.delete();
+    const valf64: f64 = 10.789;
+    s.push_layer(0, 0);
+    try s.check_rem(8);
+    s.out_f64_le(valf64);
+    s.push_layer(0, 1);
+    try std.testing.expect(8 == s.layer_subtract(1, 0));
+    try s.reset(0);
+    try s.check_rem(8);
+    s.push_layer(0, 0);
+    const valf64a = s.in_f64_le();
+    s.push_layer(0, 1);
+    try std.testing.expect(8 == s.layer_subtract(1, 0));
+    try std.testing.expect(valf64 == valf64a);
+}
+
+//*****************************************************************************
+test "f64out_f64in_be"
+{
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+    const s = try parse_t.create(&allocator, 1024);
+    defer s.delete();
+    const valf64: f64 = 10.789;
+    s.push_layer(0, 0);
+    try s.check_rem(8);
+    s.out_f64_be(valf64);
+    s.push_layer(0, 1);
+    try std.testing.expect(8 == s.layer_subtract(1, 0));
+    try s.reset(0);
+    try s.check_rem(8);
+    s.push_layer(0, 0);
+    const valf64a = s.in_f64_be();
+    s.push_layer(0, 1);
+    try std.testing.expect(8 == s.layer_subtract(1, 0));
+    try std.testing.expect(valf64 == valf64a);
+}
