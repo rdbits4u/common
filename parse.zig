@@ -484,8 +484,7 @@ pub const parse_t = struct
 //*****************************************************************************
 test "f32out_f32in_le"
 {
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = gpa.allocator();
+    const allocator = std.testing.allocator;
     const s = try parse_t.create(&allocator, 1024);
     defer s.delete();
     const valf32: f32 = 10.789;
@@ -506,8 +505,7 @@ test "f32out_f32in_le"
 //*****************************************************************************
 test "f32out_f32in_be"
 {
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = gpa.allocator();
+    const allocator = std.testing.allocator;
     const s = try parse_t.create(&allocator, 1024);
     defer s.delete();
     const valf32: f32 = 10.789;
@@ -528,8 +526,7 @@ test "f32out_f32in_be"
 //*****************************************************************************
 test "f64out_f64in_le"
 {
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = gpa.allocator();
+    const allocator = std.testing.allocator;
     const s = try parse_t.create(&allocator, 1024);
     defer s.delete();
     const valf64: f64 = 10.789;
@@ -550,8 +547,7 @@ test "f64out_f64in_le"
 //*****************************************************************************
 test "f64out_f64in_be"
 {
-    var gpa: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = gpa.allocator();
+    const allocator = std.testing.allocator;
     const s = try parse_t.create(&allocator, 1024);
     defer s.delete();
     const valf64: f64 = 10.789;
